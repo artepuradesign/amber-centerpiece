@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "@/lib/api";
+import logoNu from "@/assets/logonu.png";
 
 interface Usuario {
   id: number;
