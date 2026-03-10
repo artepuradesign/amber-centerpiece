@@ -48,6 +48,7 @@ const Saldo = () => {
       const data = await apiGet<ContaResponse>("conta.php", { usuario_id: String(userId) });
       setContaData(data.conta);
       setFaturaAtual(data.fatura_atual);
+      setTransacoes(data.transacoes || []);
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
     } finally {
