@@ -20,38 +20,48 @@ interface Props {
 const PainelTransacoes = ({ transacoes, showBalance, loading, formatCurrency }: Props) => {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return "Hoje";
     return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
   };
 
   return (
-    <section className="px-5 py-6">
-      <h3 className="text-base font-bold text-foreground font-heading mb-4">Últimas movimentações</h3>
+    <section className="px-5 py-5">
+      <h3 className="text-lg text-foreground font-body mb-4">Histórico</h3>
       {loading ? (
         <p className="text-sm text-muted-foreground font-body">Carregando...</p>
       ) : transacoes.length === 0 ? (
-        <p className="text-sm text-muted-foreground font-body">Nenhuma movimentação ainda.</p>
+        <p className="text-sm text-muted-foreground font-body">Nenhum registro encontrado.</p>
       ) : (
-        <div className="space-y-4">
-          {transacoes.slice(0, 5).map((t) => (
-            <div key={t.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${t.tipo === "entrada" ? "bg-green-500/10" : "bg-red-500/10"}`}>
+        <div className="space-y-0">
+          {transacoes.slice(0, 8).map((t) => (
+            <div key={t.id}>
+              <div className="flex items-start gap-3 py-3">
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${t.tipo === "entrada" ? "bg-nu-green/10" : "bg-secondary"}`}>
                   {t.tipo === "entrada" ? (
-                    <ArrowDownLeft className="h-4 w-4 text-green-600" />
+                    <ArrowDownLeft className="h-5 w-5 text-nu-green" />
                   ) : (
-                    <ArrowUpRight className="h-4 w-4 text-red-500" />
+                    <ArrowUpRight className="h-5 w-5 text-foreground" />
                   )}
                 </div>
-                <div>
-                  <p className="text-sm text-foreground font-body">{t.descricao}</p>
-                  <p className="text-xs text-muted-foreground font-body">{formatDate(t.data_transacao)}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground font-heading font-bold">
+                    Transferência {t.tipo === "entrada" ? "recebida" : "enviada"}
+                  </p>
+                  <p className="text-sm text-muted-foreground font-body mt-0.5">
+                    {t.beneficiario_nome || t.descricao}
+                  </p>
+                  <p className="text-sm text-muted-foreground font-body">
+                    {showBalance
+                      ? formatCurrency(parseFloat(t.valor))
+                      : "••••••"}
+                  </p>
                 </div>
+                <span className="text-xs text-muted-foreground font-body flex-shrink-0 pt-1">
+                  {formatDate(t.data_transacao)}
+                </span>
               </div>
-              <p className={`text-sm font-semibold font-heading ${t.tipo === "entrada" ? "text-green-600" : "text-foreground"}`}>
-                {showBalance
-                  ? `${t.tipo === "saida" ? "- " : "+ "}${formatCurrency(parseFloat(t.valor))}`
-                  : "••••••"}
-              </p>
+              <div className="h-px bg-border" />
             </div>
           ))}
         </div>

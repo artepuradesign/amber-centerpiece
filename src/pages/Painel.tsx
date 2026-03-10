@@ -7,6 +7,7 @@ import PainelQuickActions from "@/components/painel/PainelQuickActions";
 import PainelBanner from "@/components/painel/PainelBanner";
 import PainelCartao from "@/components/painel/PainelCartao";
 import PainelTransacoes from "@/components/painel/PainelTransacoes";
+import PainelEmprestimo from "@/components/painel/PainelEmprestimo";
 import PainelDescubra from "@/components/painel/PainelDescubra";
 import PainelBottomNav from "@/components/painel/PainelBottomNav";
 
@@ -92,19 +93,25 @@ const Painel = () => {
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const primeiroNome = contaData?.titular?.split(" ")[0] || user.email.charAt(0).toUpperCase();
+  const primeiroNome = contaData?.titular?.split(" ")[0] || user.email.split("@")[0];
   const inicialNome = (contaData?.titular || user.email).charAt(0).toUpperCase();
 
+  // Calculate limite like original PHP: saldo + percentage-based calculations
+  const saldo = contaData?.saldo ?? 0;
+  const limiteDisponivel = contaData?.limite_credito ?? saldo * 2;
+
   return (
-    <div className="min-h-screen bg-background font-body pb-28">
+    <div className="min-h-screen bg-background font-body pb-16 max-w-md mx-auto">
       <PainelHeader
         inicialNome={inicialNome}
+        primeiroNome={primeiroNome}
         showBalance={showBalance}
         onToggleBalance={() => setShowBalance(!showBalance)}
+        onLogout={handleLogout}
       />
 
       <PainelSaldo
-        saldo={contaData?.saldo ?? 0}
+        saldo={saldo}
         showBalance={showBalance}
         loading={loading}
         formatCurrency={formatCurrency}
@@ -114,16 +121,25 @@ const Painel = () => {
 
       <PainelBanner />
 
-      <div className="h-px bg-border mx-5" />
+      <div className="h-px bg-border" />
 
       <PainelCartao
         faturaAtual={faturaAtual}
+        limiteDisponivel={limiteDisponivel}
         showBalance={showBalance}
         loading={loading}
         formatCurrency={formatCurrency}
       />
 
-      <div className="h-px bg-border mx-5" />
+      <div className="h-px bg-border" />
+
+      <PainelEmprestimo />
+
+      <div className="h-px bg-border" />
+
+      <PainelDescubra />
+
+      <div className="h-px bg-border" />
 
       <PainelTransacoes
         transacoes={transacoes}
@@ -131,16 +147,6 @@ const Painel = () => {
         loading={loading}
         formatCurrency={formatCurrency}
       />
-
-      <div className="h-px bg-border mx-5" />
-
-      <PainelDescubra />
-
-      <section className="px-5 pb-8">
-        <button onClick={handleLogout} className="text-sm text-destructive font-medium hover:underline font-body">
-          Sair da conta
-        </button>
-      </section>
 
       <PainelBottomNav />
     </div>
