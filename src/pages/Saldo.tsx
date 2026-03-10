@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Plus, Send, BarChart3, TrendingUp, Wallet, DollarSign, ArrowUpRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Plus, Send, BarChart3, TrendingUp, Wallet, DollarSign, ArrowUpRight, Search, BarChart2 } from "lucide-react";
 import { apiGet } from "@/lib/api";
 
 interface ContaData {
