@@ -28,6 +28,8 @@ const Saldo = () => {
   const navigate = useNavigate();
   const [contaData, setContaData] = useState<ContaData | null>(null);
   const [faturaAtual, setFaturaAtual] = useState(0);
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
