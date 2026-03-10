@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiGet, apiPost } from "@/lib/api";
+import logoNu from "@/assets/logonu.png";
 
 interface Usuario {
   id: number;
@@ -330,49 +331,51 @@ const Admin = () => {
                 ) : !selectedConta ? (
                   <p className="text-muted-foreground text-center py-8">Selecione uma conta para visualizar o extrato.</p>
                 ) : (
-                  <>
-                    {/* Statement Header */}
-                    <div className="flex justify-between items-start mb-8 pb-6 border-b border-border">
+                  <div className="bg-white text-black p-8 max-w-[210mm] mx-auto" style={{ fontFamily: "'Graphik Regular', 'Segoe UI', sans-serif" }}>
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-10">
                       <div>
-                        <h2 className="text-3xl font-extrabold nu-text-gradient mb-1">NU</h2>
+                        <img src={logoNu} alt="Nu" className="h-10 w-auto" />
                       </div>
-                      <div className="text-right text-sm text-muted-foreground">
-                        <p className="font-semibold text-foreground">{contaInfo.titular || "—"}</p>
+                      <div className="text-right text-[13px] leading-relaxed">
+                        <p className="font-bold text-black text-[14px]">{contaInfo.titular || "—"}</p>
                         <p>
-                          <span className="font-semibold text-primary">{contaInfo.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span> {contaInfo.documento || "—"}{" "}
-                          <span className="font-semibold">Agência</span> {contaInfo.agencia || "0001"}{" "}
-                          <span className="font-semibold">Conta</span> {contaInfo.numero_conta || "—"}
+                          <span className="font-bold">{contaInfo.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span>{"  "}{contaInfo.documento || "—"}{"  "}
+                          <span className="font-bold">Agência</span>{"  "}{contaInfo.agencia || "0001"}{"  "}
+                          <span className="font-bold">Conta</span>
                         </p>
+                        <p>{contaInfo.numero_conta || "—"}</p>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-border">
-                      <h3 className="font-bold text-foreground">
+                    {/* Período e Valores */}
+                    <div className="border-t border-b border-gray-300 py-4 mb-8 flex justify-between items-center">
+                      <h3 className="font-bold text-black text-[13px] tracking-wide">
                         {extratoData?.periodo ? `${new Date(extratoData.periodo.inicio + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase()} a ${new Date(extratoData.periodo.fim + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase()}` : "—"}
                       </h3>
-                      <span className="text-sm text-muted-foreground">VALORES EM R$</span>
+                      <span className="text-[12px] text-gray-500 tracking-wider">VALORES EM R$</span>
                     </div>
 
-                    {/* Summary */}
-                    <div className="grid md:grid-cols-2 gap-8 mb-8 pb-6 border-b border-border">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Saldo final do período</p>
-                        <p className="text-3xl font-bold text-foreground">R$ {formatCurrency(resumo.saldo_final)}</p>
+                    {/* Resumo */}
+                    <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-300">
+                      <div className="flex flex-col justify-center">
+                        <p className="text-[12px] text-gray-600 mb-2 font-bold">Saldo final do período</p>
+                        <p className="text-[28px] font-bold" style={{ color: '#1a7a2e' }}>R$ {formatCurrency(resumo.saldo_final)}</p>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between"><span className="text-sm text-muted-foreground">Saldo inicial</span><span className="font-medium text-foreground">{formatCurrency(resumo.saldo_inicial)}</span></div>
-                        <div className="flex justify-between"><span className="text-sm text-muted-foreground">Rendimento líquido</span><span className="font-medium text-foreground">+{formatCurrency(resumo.rendimento_liquido)}</span></div>
-                        <div className="flex justify-between"><span className="text-sm text-muted-foreground">Total de entradas</span><span className="font-medium text-nu-green">+{formatCurrency(resumo.total_entradas)}</span></div>
-                        <div className="flex justify-between"><span className="text-sm text-muted-foreground">Total de saídas</span><span className="font-medium text-destructive">-{formatCurrency(resumo.total_saidas)}</span></div>
-                        <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold text-foreground">Saldo final do período</span><span className="font-bold text-foreground">{formatCurrency(resumo.saldo_final)}</span></div>
+                      <div className="space-y-1 text-[13px] min-w-[320px]">
+                        <div className="flex justify-between"><span className="font-bold text-black">Saldo inicial</span><span className="text-right">{formatCurrency(resumo.saldo_inicial)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-600">Rendimento líquido</span><span className="text-right">+{formatCurrency(resumo.rendimento_liquido)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-600">Total de entradas</span><span className="text-right">+{formatCurrency(resumo.total_entradas)}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-600">Total de saídas</span><span className="text-right">-{formatCurrency(resumo.total_saidas)}</span></div>
+                        <div className="flex justify-between border-t border-gray-300 pt-2 mt-1"><span className="font-bold text-black">Saldo final do período</span><span className="font-bold text-right">{formatCurrency(resumo.saldo_final)}</span></div>
                       </div>
                     </div>
 
                     {/* Movimentações */}
-                    <h3 className="font-bold text-foreground mb-6">Movimentações</h3>
+                    <h3 className="font-bold text-black text-[14px] mb-6">Movimentações</h3>
 
                     {datasOrdenadas.length === 0 && (
-                      <p className="text-muted-foreground text-center py-4">Nenhuma movimentação encontrada no período.</p>
+                      <p className="text-gray-500 text-center py-4">Nenhuma movimentação encontrada no período.</p>
                     )}
 
                     {datasOrdenadas.map(data => {
@@ -387,24 +390,24 @@ const Admin = () => {
                       }).toUpperCase().replace(".", "");
 
                       return (
-                        <div key={data} className="mb-6 pb-6 border-b border-border last:border-0">
-                          <h4 className="font-bold text-sm text-foreground mb-4">{dataFormatada}</h4>
+                        <div key={data} className="mb-5 pb-5 border-b border-gray-200 last:border-0">
+                          <h4 className="font-bold text-[12px] text-black mb-3">{dataFormatada}</h4>
 
                           {entradas.length > 0 && (
                             <>
-                              <div className="flex justify-between mb-2">
-                                <span className="font-semibold text-sm text-foreground">Total de entradas</span>
-                                <span className="font-semibold text-sm text-nu-green">+ {formatCurrency(totalDiaEntradas)}</span>
+                              <div className="flex justify-between mb-1">
+                                <span className="font-bold text-[12px] text-black">Total de entradas</span>
+                                <span className="font-bold text-[12px]" style={{ color: '#1a7a2e' }}>+ {formatCurrency(totalDiaEntradas)}</span>
                               </div>
                               {entradas.map((t: any) => (
-                                <div key={t.id} className="flex justify-between py-2 pl-4 text-sm">
+                                <div key={t.id} className="flex justify-between py-1 pl-4 text-[12px]">
                                   <div>
-                                    <p className="text-muted-foreground">{t.descricao}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}
+                                    <p className="text-gray-700">{t.descricao}</p>
+                                    <p className="text-[11px] text-gray-400">
+                                      {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Ag: {t.beneficiario_agencia} Cc: {t.beneficiario_conta}
                                     </p>
                                   </div>
-                                  <span className="font-medium text-foreground whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
+                                  <span className="font-medium whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
                                 </div>
                               ))}
                             </>
@@ -412,19 +415,19 @@ const Admin = () => {
 
                           {saidas.length > 0 && (
                             <>
-                              <div className="flex justify-between mb-2 mt-4">
-                                <span className="font-semibold text-sm text-foreground">Total de saídas</span>
-                                <span className="font-semibold text-sm text-destructive">- {formatCurrency(totalDiaSaidas)}</span>
+                              <div className="flex justify-between mb-1 mt-3">
+                                <span className="font-bold text-[12px] text-black">Total de saídas</span>
+                                <span className="font-bold text-[12px] text-red-600">- {formatCurrency(totalDiaSaidas)}</span>
                               </div>
                               {saidas.map((t: any) => (
-                                <div key={t.id} className="flex justify-between py-2 pl-4 text-sm">
+                                <div key={t.id} className="flex justify-between py-1 pl-4 text-[12px]">
                                   <div>
-                                    <p className="text-muted-foreground">{t.descricao}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}
+                                    <p className="text-gray-700">{t.descricao}</p>
+                                    <p className="text-[11px] text-gray-400">
+                                      {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Ag: {t.beneficiario_agencia} Cc: {t.beneficiario_conta}
                                     </p>
                                   </div>
-                                  <span className="font-medium text-foreground whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
+                                  <span className="font-medium whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
                                 </div>
                               ))}
                             </>
@@ -434,11 +437,11 @@ const Admin = () => {
                     })}
 
                     {/* Footer */}
-                    <div className="text-xs text-muted-foreground mt-8 pt-4 border-t border-border space-y-1">
+                    <div className="text-[11px] text-gray-400 mt-8 pt-4 border-t border-gray-300 space-y-1">
                       <p>Tem alguma dúvida? Mande uma mensagem para nosso time de atendimento pelo chat do app ou ligue 4020 0185.</p>
                       <p>Extrato gerado dia {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
                     </div>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
