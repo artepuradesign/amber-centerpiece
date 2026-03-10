@@ -428,6 +428,150 @@ const Admin = () => {
   );
 };
 
+// Extrato preview component (matches PDF export layout)
+function ExtratoPreview({ contaInfo, resumo, movimentacoes, datasOrdenadas, extratoData, formatCurrency }: {
+  contaInfo: any; resumo: any; movimentacoes: any; datasOrdenadas: string[]; extratoData: any; formatCurrency: (v: number) => string;
+}) {
+  const fmtPeriodo = (d: string) =>
+    new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+
+  const fmtDia = (d: string) => {
+    const dt = new Date(d + "T12:00:00");
+    const day = String(dt.getDate()).padStart(2, "0");
+    const months = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    return `${day} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  };
+
+  const saldoPorDia: Record<string, number> = {};
+  let saldoAcumulado = resumo.saldo_inicial || 0;
+  for (const dia of datasOrdenadas) {
+    const trans = movimentacoes[dia];
+    for (const t of trans) {
+      if (t.tipo === "entrada") saldoAcumulado += parseFloat(t.valor);
+      else saldoAcumulado -= parseFloat(t.valor);
+    }
+    saldoPorDia[dia] = saldoAcumulado;
+  }
+
+  return (
+    <div className="bg-white text-black p-8 max-w-[210mm] mx-auto" style={{ fontFamily: "'Graphik Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: "11px", lineHeight: "1.5" }}>
+      <div className="flex justify-between items-start mb-12">
+        <img src={logoNu} alt="Nu" style={{ height: "42px", width: "auto" }} />
+        <div className="text-right" style={{ fontSize: "12px", lineHeight: "1.6" }}>
+          <p>{contaInfo.titular || "—"}</p>
+          <p>
+            <span style={{ fontWeight: 700, color: "#820AD1" }}>{contaInfo.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span>{"  "}{contaInfo.documento || "—"}{"  "}
+            <span style={{ fontWeight: 700 }}>Agência</span>{"  "}{contaInfo.agencia || "0001"}{"  "}
+            <span style={{ fontWeight: 700 }}>Conta</span>
+          </p>
+          <p>{contaInfo.numero_conta || "—"}</p>
+        </div>
+      </div>
+
+      <div style={{ borderBottom: "2px solid #222", paddingBottom: "8px", marginBottom: "24px" }}>
+        <div className="flex justify-between items-baseline">
+          <span style={{ fontWeight: 700, fontSize: "12px" }}>
+            {extratoData?.periodo ? `${fmtPeriodo(extratoData.periodo.inicio)} a ${fmtPeriodo(extratoData.periodo.fim)}` : "—"}
+          </span>
+          <span style={{ fontSize: "12px", color: "#666" }}>VALORES EM R$</span>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-start" style={{ marginBottom: "24px" }}>
+        <div style={{ paddingTop: "8px" }}>
+          <p style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>Saldo final do período</p>
+          <p style={{ fontSize: "26px", fontWeight: 700, color: "#1a7a2e", lineHeight: "1.2" }}>R$ {formatCurrency(resumo.saldo_final)}</p>
+        </div>
+        <table style={{ fontSize: "12px", borderCollapse: "collapse", minWidth: "320px" }}>
+          <tbody>
+            <tr><td style={{ fontWeight: 700, padding: "3px 16px 3px 0" }}>Saldo inicial</td><td style={{ textAlign: "right", padding: "3px 0" }}>{formatCurrency(resumo.saldo_inicial)}</td></tr>
+            <tr><td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Rendimento líquido</td><td style={{ textAlign: "right", padding: "3px 0" }}>+{formatCurrency(resumo.rendimento_liquido)}</td></tr>
+            <tr><td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Total de entradas</td><td style={{ textAlign: "right", padding: "3px 0" }}>+{formatCurrency(resumo.total_entradas)}</td></tr>
+            <tr><td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Total de saídas</td><td style={{ textAlign: "right", padding: "3px 0" }}>-{formatCurrency(resumo.total_saidas)}</td></tr>
+            <tr><td style={{ fontWeight: 700, padding: "6px 16px 3px 0", borderTop: "1px solid #ccc" }}>Saldo final do período</td><td style={{ fontWeight: 700, textAlign: "right", padding: "6px 0 3px 0", borderTop: "1px solid #ccc" }}>{formatCurrency(resumo.saldo_final)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ borderBottom: "2px solid #222", paddingBottom: "6px", marginBottom: "16px" }}>
+        <span style={{ fontWeight: 700, fontSize: "12px", textDecoration: "underline", textUnderlineOffset: "4px" }}>Movimentações</span>
+      </div>
+
+      {datasOrdenadas.length === 0 && <p style={{ textAlign: "center", color: "#999", padding: "20px 0" }}>Nenhuma movimentação encontrada.</p>}
+
+      {datasOrdenadas.map(dia => {
+        const trans = movimentacoes[dia];
+        const entradas = trans.filter((t: any) => t.tipo === "entrada");
+        const saidas = trans.filter((t: any) => t.tipo === "saida");
+        const totalE = entradas.reduce((s: number, t: any) => s + parseFloat(t.valor), 0);
+        const totalS = saidas.reduce((s: number, t: any) => s + parseFloat(t.valor), 0);
+
+        return (
+          <div key={dia} style={{ marginBottom: "8px" }}>
+            {entradas.length > 0 && (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "4px" }}>
+                <tbody>
+                  <tr style={{ borderBottom: "1px solid #ddd" }}>
+                    <td style={{ width: "90px", padding: "8px 12px 8px 0" }}>{fmtDia(dia)}</td>
+                    <td style={{ fontWeight: 700, padding: "8px 0" }}>Total de entradas</td>
+                    <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0", whiteSpace: "nowrap" }}>+ {formatCurrency(totalE)}</td>
+                  </tr>
+                  {entradas.map((t: any, i: number) => (
+                    <tr key={t.id || i}>
+                      <td style={{ padding: "6px 12px 6px 0" }}></td>
+                      <td style={{ padding: "6px 0", verticalAlign: "top" }}>
+                        <span>{t.descricao}</span><br />
+                        <span style={{ color: "#888", fontSize: "10px" }}>{t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}</span>
+                      </td>
+                      <td style={{ textAlign: "right", padding: "6px 0", verticalAlign: "top", whiteSpace: "nowrap" }}>{formatCurrency(parseFloat(t.valor))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {saidas.length > 0 && (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "4px" }}>
+                <tbody>
+                  <tr style={{ borderBottom: "1px solid #ddd" }}>
+                    <td style={{ width: "90px", padding: "8px 12px 8px 0" }}>{entradas.length === 0 ? fmtDia(dia) : ""}</td>
+                    <td style={{ fontWeight: 700, padding: "8px 0" }}>Total de saídas</td>
+                    <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0", whiteSpace: "nowrap" }}>- {formatCurrency(totalS)}</td>
+                  </tr>
+                  {saidas.map((t: any, i: number) => (
+                    <tr key={t.id || i}>
+                      <td style={{ padding: "6px 12px 6px 0" }}></td>
+                      <td style={{ padding: "6px 0", verticalAlign: "top" }}>
+                        <span>{t.descricao}</span><br />
+                        <span style={{ color: "#888", fontSize: "10px" }}>{t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}</span>
+                      </td>
+                      <td style={{ textAlign: "right", padding: "6px 0", verticalAlign: "top", whiteSpace: "nowrap" }}>{formatCurrency(parseFloat(t.valor))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+              <tbody>
+                <tr style={{ borderTop: "2px solid #bbb", borderBottom: "2px solid #bbb" }}>
+                  <td style={{ width: "90px", padding: "8px 12px 8px 0" }}></td>
+                  <td style={{ fontWeight: 700, padding: "8px 0" }}>Saldo do dia</td>
+                  <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0" }}>{formatCurrency(saldoPorDia[dia])}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      <div style={{ marginTop: "32px", borderTop: "1px solid #ddd", paddingTop: "16px", fontSize: "10px", color: "#888", lineHeight: "1.6" }}>
+        <p>Tem alguma dúvida? Mande uma mensagem para nosso time de atendimento pelo chat do app ou ligue 4020 0185 (capitais e regiões metropolitanas) ou 0800 591 2117 (demais localidades). Atendimento 24h.</p>
+        <p style={{ marginTop: "8px" }}>Caso a solução fornecida nos canais de atendimento não tenha sido satisfatória, fale com a Ouvidoria em 0800 887 0463 ou pelos meios disponíveis em nubank.com.br/contatos#ouvidoria. Atendimento das 8h às 18h em dias úteis.</p>
+        <p style={{ marginTop: "12px" }}>Extrato gerado dia {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+      </div>
+    </div>
+  );
+}
+
 // Export component
 function ExportarExtrato({ selectedConta, contaInfo }: { selectedConta: string; contaInfo: any }) {
   const navigate = useNavigate();
