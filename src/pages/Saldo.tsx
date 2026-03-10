@@ -8,9 +8,20 @@ interface ContaData {
   limite_credito: number;
 }
 
+interface Transacao {
+  id: number;
+  tipo: string;
+  categoria: string;
+  descricao: string;
+  valor: string;
+  data_transacao: string;
+  beneficiario_nome: string | null;
+}
+
 interface ContaResponse {
   conta: ContaData;
   fatura_atual: number;
+  transacoes: Transacao[];
 }
 
 const Saldo = () => {
