@@ -9,6 +9,7 @@ import Login from "./pages/Login.tsx";
 import Admin from "./pages/Admin.tsx";
 import Painel from "./pages/Painel.tsx";
 import ExtratoExport from "./pages/ExtratoExport.tsx";
+import Saldo from "./pages/Saldo.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/painel" element={<Painel />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/extrato-export" element={<ExtratoExport />} />
+          <Route path="/saldo" element={<Saldo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
