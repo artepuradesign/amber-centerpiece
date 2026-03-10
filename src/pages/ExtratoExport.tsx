@@ -23,7 +23,7 @@ const ExtratoExport = () => {
       .finally(() => setLoading(false));
   }, [contaId, dataInicio, dataFim]);
 
-  const formatCurrency = (v: number) =>
+  const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handlePrint = () => window.print();
@@ -41,8 +41,36 @@ const ExtratoExport = () => {
   const movimentacoes = data.movimentacoes || {};
   const datasOrdenadas = Object.keys(movimentacoes).sort();
 
-  const periodoInicio = new Date(dataInicio + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
-  const periodoFim = new Date(dataFim + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+  const fmtPeriodo = (d: string) =>
+    new Date(d + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).toUpperCase();
+
+  const fmtDia = (d: string) => {
+    const dt = new Date(d + "T12:00:00");
+    const day = String(dt.getDate()).padStart(2, "0");
+    const months = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+    return `${day} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  };
+
+  // Compute saldo do dia for each date
+  const saldoPorDia: Record<string, number> = {};
+  {
+    let saldoAcumulado = resumo.saldo_inicial || 0;
+    for (const dia of datasOrdenadas) {
+      const trans = movimentacoes[dia];
+      for (const t of trans) {
+        if (t.tipo === "entrada") saldoAcumulado += parseFloat(t.valor);
+        else saldoAcumulado -= parseFloat(t.valor);
+      }
+      saldoPorDia[dia] = saldoAcumulado;
+    }
+  }
+
+  const pageStyle: React.CSSProperties = {
+    fontFamily: "'Graphik Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+    fontSize: "11px",
+    lineHeight: "1.5",
+    color: "#222",
+  };
 
   return (
     <>
@@ -57,49 +85,75 @@ const ExtratoExport = () => {
       </div>
 
       <div className="flex justify-center py-8 print:py-0 bg-secondary/30 print:bg-white min-h-screen">
-        <div className="bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] px-[20mm] py-[15mm] text-black leading-relaxed print:w-full print:min-h-0 print:px-[15mm] print:py-[10mm]" style={{ fontFamily: "'Graphik Regular', 'Segoe UI', sans-serif" }}>
-          
-          {/* Header */}
-          <div className="flex justify-between items-start mb-10">
-            <div>
-              <img src={logoNu} alt="Nu" className="h-10 w-auto" />
-            </div>
-            <div className="text-right text-[13px] leading-relaxed">
-              <p className="font-bold text-black text-[14px]">{conta.titular}</p>
+        <div
+          className="bg-white shadow-lg print:shadow-none w-[210mm] min-h-[297mm] px-[25mm] py-[20mm] print:w-full print:min-h-0 print:px-[20mm] print:py-[15mm]"
+          style={pageStyle}
+        >
+          {/* ===== HEADER ===== */}
+          <div className="flex justify-between items-start mb-12">
+            <img src={logoNu} alt="Nu" style={{ height: "42px", width: "auto" }} />
+            <div className="text-right" style={{ fontSize: "12px", lineHeight: "1.6" }}>
+              <p style={{ fontWeight: 400 }}>{conta.titular}</p>
               <p>
-                <span className="font-bold">{conta.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span>{"  "}{conta.documento}{"  "}
-                <span className="font-bold">Agência</span>{"  "}{conta.agencia || "0001"}{"  "}
-                <span className="font-bold">Conta</span>{"  "}{conta.numero_conta}
+                <span style={{ fontWeight: 700, color: "#820AD1" }}>{conta.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span>{"  "}{conta.documento}{"  "}
+                <span style={{ fontWeight: 700 }}>Agência</span>{"  "}{conta.agencia || "0001"}{"  "}
+                <span style={{ fontWeight: 700 }}>Conta</span>
+              </p>
+              <p>{conta.numero_conta}</p>
+            </div>
+          </div>
+
+          {/* ===== PERÍODO ===== */}
+          <div style={{ borderBottom: "2px solid #222", paddingBottom: "8px", marginBottom: "24px" }}>
+            <div className="flex justify-between items-baseline">
+              <span style={{ fontWeight: 700, fontSize: "12px" }}>
+                {fmtPeriodo(dataInicio)} a {fmtPeriodo(dataFim)}
+              </span>
+              <span style={{ fontSize: "12px", color: "#666" }}>VALORES EM R$</span>
+            </div>
+          </div>
+
+          {/* ===== RESUMO ===== */}
+          <div className="flex justify-between items-start" style={{ marginBottom: "24px" }}>
+            <div style={{ paddingTop: "8px" }}>
+              <p style={{ fontSize: "11px", color: "#666", marginBottom: "6px" }}>Saldo final do período</p>
+              <p style={{ fontSize: "26px", fontWeight: 700, color: "#1a7a2e", lineHeight: "1.2" }}>
+                R$ {fmt(resumo.saldo_final)}
               </p>
             </div>
+            <table style={{ fontSize: "12px", borderCollapse: "collapse", minWidth: "320px" }}>
+              <tbody>
+                <tr>
+                  <td style={{ fontWeight: 700, padding: "3px 16px 3px 0" }}>Saldo inicial</td>
+                  <td style={{ textAlign: "right", padding: "3px 0" }}>{fmt(resumo.saldo_inicial)}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Rendimento líquido</td>
+                  <td style={{ textAlign: "right", padding: "3px 0" }}>+{fmt(resumo.rendimento_liquido)}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Total de entradas</td>
+                  <td style={{ textAlign: "right", padding: "3px 0" }}>+{fmt(resumo.total_entradas)}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "3px 16px 3px 0", color: "#444" }}>Total de saídas</td>
+                  <td style={{ textAlign: "right", padding: "3px 0" }}>-{fmt(resumo.total_saidas)}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 700, padding: "6px 16px 3px 0", borderTop: "1px solid #ccc" }}>Saldo final do período</td>
+                  <td style={{ fontWeight: 700, textAlign: "right", padding: "6px 0 3px 0", borderTop: "1px solid #ccc" }}>{fmt(resumo.saldo_final)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          {/* Period */}
-          <div className="border-t border-b border-gray-300 py-4 mb-8 flex justify-between items-center">
-            <h3 className="font-bold text-black text-[13px] tracking-wide">{periodoInicio} a {periodoFim}</h3>
-            <span className="text-[12px] text-gray-500 tracking-wider">VALORES EM R$</span>
+          {/* ===== MOVIMENTAÇÕES ===== */}
+          <div style={{ borderBottom: "2px solid #222", paddingBottom: "6px", marginBottom: "16px" }}>
+            <span style={{ fontWeight: 700, fontSize: "12px", textDecoration: "underline", textUnderlineOffset: "4px" }}>Movimentações</span>
           </div>
-
-          {/* Summary */}
-          <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-300">
-            <div className="flex flex-col justify-center">
-              <p className="text-[12px] text-gray-600 mb-2 font-bold">Saldo final do período</p>
-              <p className="text-[28px] font-bold" style={{ color: '#1a7a2e' }}>R$ {formatCurrency(resumo.saldo_final)}</p>
-            </div>
-            <div className="space-y-1 text-[13px] min-w-[320px]">
-              <div className="flex justify-between"><span className="font-bold text-black">Saldo inicial</span><span>{formatCurrency(resumo.saldo_inicial)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Rendimento líquido</span><span>+{formatCurrency(resumo.rendimento_liquido)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Total de entradas</span><span>+{formatCurrency(resumo.total_entradas)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-600">Total de saídas</span><span>-{formatCurrency(resumo.total_saidas)}</span></div>
-              <div className="flex justify-between border-t border-gray-300 pt-2 mt-1"><span className="font-bold text-black">Saldo final do período</span><span className="font-bold">{formatCurrency(resumo.saldo_final)}</span></div>
-            </div>
-          </div>
-
-          {/* Movimentações */}
-          <h3 className="font-bold text-black text-[14px] mb-4">Movimentações</h3>
 
           {datasOrdenadas.length === 0 && (
-            <p className="text-gray-500 text-center py-4">Nenhuma movimentação encontrada no período.</p>
+            <p style={{ textAlign: "center", color: "#999", padding: "20px 0" }}>Nenhuma movimentação encontrada no período.</p>
           )}
 
           {datasOrdenadas.map(dia => {
@@ -109,61 +163,84 @@ const ExtratoExport = () => {
             const totalE = entradas.reduce((s: number, t: any) => s + parseFloat(t.valor), 0);
             const totalS = saidas.reduce((s: number, t: any) => s + parseFloat(t.valor), 0);
 
-            const diaFormatado = new Date(dia + "T12:00:00").toLocaleDateString("pt-BR", {
-              day: "2-digit", month: "short", year: "numeric",
-            }).toUpperCase().replace(".", "");
-
             return (
-              <div key={dia} className="mb-5 pb-5 border-b border-gray-200 last:border-0">
-                <h4 className="font-bold text-[12px] text-black mb-3">{diaFormatado}</h4>
-
+              <div key={dia} style={{ marginBottom: "8px" }}>
+                {/* Entradas */}
                 {entradas.length > 0 && (
-                  <>
-                    <div className="flex justify-between mb-1">
-                      <span className="font-bold text-[12px]">Total de entradas</span>
-                      <span className="font-bold text-[12px]" style={{ color: '#1a7a2e' }}>+ {formatCurrency(totalE)}</span>
-                    </div>
-                    {entradas.map((t: any) => (
-                      <div key={t.id} className="flex justify-between py-1 pl-4 text-[12px]">
-                        <div>
-                          <p className="text-gray-700">{t.descricao}</p>
-                          <p className="text-[11px] text-gray-400">
-                            {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Ag: {t.beneficiario_agencia} Cc: {t.beneficiario_conta}
-                          </p>
-                        </div>
-                        <span className="font-medium whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
-                      </div>
-                    ))}
-                  </>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "4px" }}>
+                    <tbody>
+                      {/* Total de entradas row */}
+                      <tr style={{ borderBottom: "1px solid #ddd" }}>
+                        <td style={{ width: "90px", verticalAlign: "top", padding: "8px 12px 8px 0", fontWeight: 400, color: "#222" }}>{fmtDia(dia)}</td>
+                        <td style={{ fontWeight: 700, padding: "8px 0" }}>Total de entradas</td>
+                        <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0", whiteSpace: "nowrap" }}>+ {fmt(totalE)}</td>
+                      </tr>
+                      {entradas.map((t: any, i: number) => (
+                        <tr key={t.id || i}>
+                          <td style={{ padding: "6px 12px 6px 0" }}></td>
+                          <td style={{ padding: "6px 0", verticalAlign: "top" }}>
+                            <span>{t.descricao}</span>
+                            <br />
+                            <span style={{ color: "#888", fontSize: "10px" }}>
+                              {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right", padding: "6px 0", verticalAlign: "top", whiteSpace: "nowrap" }}>{fmt(parseFloat(t.valor))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
 
+                {/* Saídas */}
                 {saidas.length > 0 && (
-                  <>
-                    <div className="flex justify-between mb-1 mt-3">
-                      <span className="font-bold text-[12px]">Total de saídas</span>
-                      <span className="font-bold text-[12px] text-red-600">- {formatCurrency(totalS)}</span>
-                    </div>
-                    {saidas.map((t: any) => (
-                      <div key={t.id} className="flex justify-between py-1 pl-4 text-[12px]">
-                        <div>
-                          <p className="text-gray-700">{t.descricao}</p>
-                          <p className="text-[11px] text-gray-400">
-                            {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Ag: {t.beneficiario_agencia} Cc: {t.beneficiario_conta}
-                          </p>
-                        </div>
-                        <span className="font-medium whitespace-nowrap ml-4">{formatCurrency(parseFloat(t.valor))}</span>
-                      </div>
-                    ))}
-                  </>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "4px" }}>
+                    <tbody>
+                      <tr style={{ borderBottom: "1px solid #ddd" }}>
+                        <td style={{ width: "90px", verticalAlign: "top", padding: "8px 12px 8px 0", fontWeight: 400, color: "#222" }}>
+                          {entradas.length === 0 ? fmtDia(dia) : ""}
+                        </td>
+                        <td style={{ fontWeight: 700, padding: "8px 0" }}>Total de saídas</td>
+                        <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0", whiteSpace: "nowrap" }}>- {fmt(totalS)}</td>
+                      </tr>
+                      {saidas.map((t: any, i: number) => (
+                        <tr key={t.id || i}>
+                          <td style={{ padding: "6px 12px 6px 0" }}></td>
+                          <td style={{ padding: "6px 0", verticalAlign: "top" }}>
+                            <span>{t.descricao}</span>
+                            <br />
+                            <span style={{ color: "#888", fontSize: "10px" }}>
+                              {t.beneficiario_nome} - {t.beneficiario_documento} - {t.beneficiario_banco} Agência: {t.beneficiario_agencia} Conta: {t.beneficiario_conta}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right", padding: "6px 0", verticalAlign: "top", whiteSpace: "nowrap" }}>{fmt(parseFloat(t.valor))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
+
+                {/* Saldo do dia */}
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                  <tbody>
+                    <tr style={{ borderTop: "2px solid #bbb", borderBottom: "2px solid #bbb" }}>
+                      <td style={{ width: "90px", padding: "8px 12px 8px 0" }}></td>
+                      <td style={{ fontWeight: 700, padding: "8px 0" }}>Saldo do dia</td>
+                      <td style={{ fontWeight: 700, textAlign: "right", padding: "8px 0" }}>{fmt(saldoPorDia[dia])}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             );
           })}
 
-          {/* Footer */}
-          <div className="text-[11px] text-gray-400 mt-8 pt-4 border-t border-gray-300 space-y-1">
-            <p>Tem alguma dúvida? Mande uma mensagem para nosso time de atendimento pelo chat do app ou ligue 4020 0185.</p>
-            <p>Extrato gerado dia {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+          {/* ===== FOOTER ===== */}
+          <div style={{ marginTop: "32px", borderTop: "1px solid #ddd", paddingTop: "16px", fontSize: "10px", color: "#888", lineHeight: "1.6" }}>
+            <p>Tem alguma dúvida? Mande uma mensagem para nosso time de atendimento pelo chat do app ou ligue 4020 0185 (capitais e regiões metropolitanas) ou 0800 591 2117 (demais localidades). Atendimento 24h.</p>
+            <p style={{ marginTop: "8px" }}>Caso a solução fornecida nos canais de atendimento não tenha sido satisfatória, fale com a Ouvidoria em 0800 887 0463 ou pelos meios disponíveis em nubank.com.br/contatos#ouvidoria. Atendimento das 8h às 18h em dias úteis.</p>
+            <div className="flex justify-between" style={{ marginTop: "12px" }}>
+              <span>Extrato gerado dia {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })} às {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
           </div>
         </div>
       </div>
