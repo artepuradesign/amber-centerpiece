@@ -172,11 +172,101 @@ const Saldo = () => {
       </section>
 
       {/* Resumo financeiro */}
-      <section className="px-5 pb-8">
-        <h2 className="text-xl font-bold text-foreground font-heading mb-1">Resumo financeiro</h2>
-        <p className="text-sm text-muted-foreground font-body">
-          Confira a análise dos seus gastos de
-        </p>
+      <section className="px-5 pb-6">
+        <button className="w-full flex items-center justify-between py-2">
+          <div>
+            <h2 className="text-xl font-bold text-foreground font-heading mb-1 text-left">Resumo financeiro</h2>
+            <p className="text-sm text-muted-foreground font-body text-left">
+              Confira a análise dos seus gastos de março
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded">Novo</span>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </button>
+      </section>
+
+      {/* Histórico */}
+      <section className="px-5 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-foreground font-heading">Histórico</h2>
+          <BarChart2 className="h-6 w-6 text-muted-foreground" />
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-secondary rounded-full py-3 pl-12 pr-4 text-sm text-foreground placeholder:text-muted-foreground font-body outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {/* Transaction list */}
+        {loading ? (
+          <p className="text-sm text-muted-foreground py-4">Carregando...</p>
+        ) : (
+          (() => {
+            const filtered = transacoes.filter(t => {
+              const term = searchTerm.toLowerCase();
+              return !term || 
+                (t.beneficiario_nome?.toLowerCase().includes(term)) ||
+                t.descricao.toLowerCase().includes(term) ||
+                t.categoria.toLowerCase().includes(term);
+            });
+
+            // Group by date
+            const grouped: Record<string, Transacao[]> = {};
+            filtered.forEach(t => {
+              const date = new Date(t.data_transacao);
+              const today = new Date();
+              const isToday = date.toDateString() === today.toDateString();
+              const key = isToday ? "Hoje" : date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+              if (!grouped[key]) grouped[key] = [];
+              grouped[key].push(t);
+            });
+
+            return Object.entries(grouped).map(([dateLabel, items]) => (
+              <div key={dateLabel} className="mb-4">
+                <p className="text-sm text-muted-foreground font-body mb-3">{dateLabel}</p>
+                <div className="divide-y divide-border">
+                  {items.map(t => {
+                    const isPix = t.categoria === "PIX";
+                    const time = new Date(t.data_transacao).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                    const catLabel = isPix ? "Pix" : t.categoria === "CARTAO" ? "Débito" : t.categoria;
+
+                    return (
+                      <div key={t.id} className="flex items-center gap-4 py-4">
+                        <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
+                          {isPix ? (
+                            <Send className="h-5 w-5 text-foreground" />
+                          ) : (
+                            <Wallet className="h-5 w-5 text-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground font-heading truncate">
+                            {t.beneficiario_nome || t.descricao}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-body">
+                            {time} · {catLabel}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground font-heading whitespace-nowrap">
+                          {formatCurrency(parseFloat(t.valor))}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()
+        )}
       </section>
     </div>
   );
