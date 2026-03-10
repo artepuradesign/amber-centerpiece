@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Plus, Send, BarChart3, TrendingUp, Wallet, DollarSign, ArrowUpRight, Search, BarChart2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Plus, Send, BarChart3, TrendingUp, Wallet, DollarSign, ArrowUpRight, Search, BarChart2, X, FileText, Settings, Key } from "lucide-react";
 import { apiGet } from "@/lib/api";
 
 interface ContaData {
@@ -24,6 +24,11 @@ interface ContaResponse {
   transacoes: Transacao[];
 }
 
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
 const Saldo = () => {
   const navigate = useNavigate();
   const [contaData, setContaData] = useState<ContaData | null>(null);
@@ -31,6 +36,10 @@ const Saldo = () => {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("nu_user") || sessionStorage.getItem("nu_user");
@@ -39,13 +48,14 @@ const Saldo = () => {
       return;
     }
     const user = JSON.parse(saved);
+    setUserId(user.id);
     fetchData(user.id);
   }, [navigate]);
 
-  const fetchData = async (userId: number) => {
+  const fetchData = async (uid: number) => {
     try {
       setLoading(true);
-      const data = await apiGet<ContaResponse>("conta.php", { usuario_id: String(userId) });
+      const data = await apiGet<ContaResponse>("conta.php", { usuario_id: String(uid) });
       setContaData(data.conta);
       setFaturaAtual(data.fatura_atual);
       setTransacoes(data.transacoes || []);
@@ -68,8 +78,41 @@ const Saldo = () => {
     { icon: TrendingUp, label: "Investir e\nGuardar" },
   ];
 
+  // Generate months list (current month back ~12 months)
+  const now = new Date();
+  const currentDay = now.getDate();
+  const monthsList: { label: string; value: string; year: number }[] = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    let label = MESES[month];
+    // For current month, show partial range
+    if (i === 0) {
+      label = `${MESES[month]} (de 01 ao ${String(currentDay).padStart(2, "0")})`;
+    }
+    monthsList.push({ label, value: `${year}-${String(month + 1).padStart(2, "0")}`, year });
+  }
+
+  // Group by year
+  const byYear: Record<number, typeof monthsList> = {};
+  monthsList.forEach(m => {
+    if (!byYear[m.year]) byYear[m.year] = [];
+    byYear[m.year].push(m);
+  });
+
+  const handleExportExtrato = () => {
+    if (!selectedMonth || !userId) return;
+    const [year, month] = selectedMonth.split("-");
+    const startDate = `${year}-${month}-01`;
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+    // Navigate to extrato-export with params
+    navigate(`/extrato-export?conta_id=${userId}&data_inicio=${startDate}&data_fim=${endDate}`);
+  };
+
   return (
-    <div className="min-h-screen bg-background font-body max-w-md mx-auto">
+    <div className="min-h-screen bg-background font-body max-w-md mx-auto relative">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-12 pb-4">
         <button onClick={() => navigate("/painel")} className="p-1">
@@ -79,7 +122,7 @@ const Saldo = () => {
           <button className="p-1">
             <HelpCircle className="h-6 w-6 text-muted-foreground" />
           </button>
-          <button className="p-1">
+          <button className="p-1" onClick={() => setShowMenu(true)}>
             <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
           </button>
         </div>
@@ -194,7 +237,6 @@ const Saldo = () => {
           <BarChart2 className="h-6 w-6 text-muted-foreground" />
         </div>
 
-        {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <input
@@ -206,7 +248,6 @@ const Saldo = () => {
           />
         </div>
 
-        {/* Transaction list */}
         {loading ? (
           <p className="text-sm text-muted-foreground py-4">Carregando...</p>
         ) : (
@@ -219,7 +260,6 @@ const Saldo = () => {
                 t.categoria.toLowerCase().includes(term);
             });
 
-            // Group by date
             const grouped: Record<string, Transacao[]> = {};
             filtered.forEach(t => {
               const date = new Date(t.data_transacao);
@@ -268,6 +308,127 @@ const Saldo = () => {
           })()
         )}
       </section>
+
+      {/* ===== BOTTOM SHEET - Mais opções ===== */}
+      {showMenu && (
+        <div className="fixed inset-0 z-50 max-w-md mx-auto">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50 transition-opacity"
+            onClick={() => setShowMenu(false)}
+          />
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl animate-in slide-in-from-bottom duration-300">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center px-5 py-4">
+              <button onClick={() => setShowMenu(false)} className="p-1">
+                <X className="h-6 w-6 text-foreground" />
+              </button>
+              <p className="flex-1 text-center text-base font-semibold text-foreground font-heading pr-7">
+                Mais opções
+              </p>
+            </div>
+            {/* Menu items */}
+            <div className="pb-8">
+              <button
+                className="w-full flex items-center gap-5 px-6 py-5 active:bg-muted/50 transition-colors"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowMonthPicker(true);
+                }}
+              >
+                <FileText className="h-6 w-6 text-foreground" />
+                <span className="text-base text-foreground font-body">Pedir Extrato</span>
+              </button>
+              <button className="w-full flex items-center gap-5 px-6 py-5 active:bg-muted/50 transition-colors">
+                <BarChart3 className="h-6 w-6 text-foreground" />
+                <span className="text-base text-foreground font-body">Informações de rendimento</span>
+              </button>
+              <button className="w-full flex items-center gap-5 px-6 py-5 active:bg-muted/50 transition-colors">
+                <Settings className="h-6 w-6 text-foreground" />
+                <span className="text-base text-foreground font-body">Configurar conta</span>
+              </button>
+              <button className="w-full flex items-center gap-5 px-6 py-5 active:bg-muted/50 transition-colors">
+                <Key className="h-6 w-6 text-foreground" />
+                <span className="text-base text-foreground font-body">Configurar chaves Pix</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== FULL SCREEN SLIDE - Month Picker ===== */}
+      <div
+        className={`fixed inset-0 z-[60] max-w-md mx-auto bg-background transition-transform duration-300 ease-in-out ${
+          showMonthPicker ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Header */}
+        <div className="px-5 pt-12 pb-2">
+          <button onClick={() => setShowMonthPicker(false)} className="p-1 mb-4">
+            <X className="h-6 w-6 text-foreground" />
+          </button>
+          <h1 className="text-[26px] font-bold text-foreground font-heading leading-tight">
+            Selecione o mês que você{"\n"}quer no seu extrato
+          </h1>
+        </div>
+
+        {/* Month list */}
+        <div className="flex-1 overflow-y-auto px-5 pb-28" style={{ maxHeight: "calc(100vh - 220px)" }}>
+          {Object.entries(byYear)
+            .sort(([a], [b]) => Number(b) - Number(a))
+            .map(([year, months]) => (
+              <div key={year} className="mt-6">
+                <p className="text-sm text-muted-foreground font-body mb-4">{year}</p>
+                <div className="space-y-2">
+                  {months.map(m => {
+                    const isSelected = selectedMonth === m.value;
+                    return (
+                      <button
+                        key={m.value}
+                        className="w-full flex items-center gap-4 py-4 active:bg-muted/30 transition-colors"
+                        onClick={() => setSelectedMonth(m.value)}
+                      >
+                        {/* Radio circle */}
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? "border-primary"
+                              : "border-muted-foreground/40"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="w-3 h-3 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <span className="text-base text-foreground font-body">{m.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+        </div>
+
+        {/* Fixed bottom button */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 pb-8 bg-background">
+          <button
+            onClick={handleExportExtrato}
+            disabled={!selectedMonth}
+            className={`w-full py-4 rounded-full text-base font-semibold font-heading transition-colors ${
+              selectedMonth
+                ? "bg-primary text-primary-foreground active:opacity-90"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            Exportar Extrato
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
