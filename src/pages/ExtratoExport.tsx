@@ -69,9 +69,8 @@ const ExtratoExport = () => {
               <p>
                 <span className="font-bold">{conta.tipo_conta === "PJ" ? "CNPJ" : "CPF"}</span>{"  "}{conta.documento}{"  "}
                 <span className="font-bold">Agência</span>{"  "}{conta.agencia || "0001"}{"  "}
-                <span className="font-bold">Conta</span>
+                <span className="font-bold">Conta</span>{"  "}{conta.numero_conta}
               </p>
-              <p>{conta.numero_conta}</p>
             </div>
           </div>
 
